@@ -12,3 +12,4 @@
 #' }
 #' @source \url{https://go.tradegecko.com/intelligence/inventory_detail.csv?order=product_name%20asc&}
 "inventory_details_raw"
+
