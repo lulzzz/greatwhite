@@ -26,14 +26,30 @@ normCols <- function(inv) {
 mergeLine <- function(inv, line) {
   inv <- merge(inv, line$PRODUCT, by = "style_num") # Merge PRODUCT data on style number
   inv <- merge(inv, line$VARIANTS, by = "sku")      # Merge VARIANT data on sku
-  # Select and rename
-  inv <- inv %>% select(
-    sku, style_num = style_num.x,                                   # identifiers
-    product = product_description_short, size = size_id,            # variant info
-    on_hand, committed, available, incoming,                        # stock info
-    category, gender, graphic, cut, color,                          # product info
-    blank_id = blank_id.y, blank_name, blank_color = blank_color.y, # blank info
-    artwork_file_1, p1_size, p1_inkcolor                            # print info
-  )
+  inv <- inv %>%
+    # New variable
+    mutate(to_order = target_stock - available_incoming) %>%          # quantities needed to meet target stock
+    # Select and rename
+    select(
+      sku, style_num = style_num.x,                                   # identifiers
+      product = product_description_short, size = size_id,            # variant info
+      on_hand, committed, available, incoming,                        # basic stock variables
+      available_incoming, target_stock, to_order,                     # special stock variables
+      category, gender, graphic, cut, color,                          # product info
+      blank_id = blank_id.y, blank_name, blank_color = blank_color.y, # blank info
+      artwork_file_1, p1_size, p1_inkcolor                            # print info
+      )
+  return(inv)
+}
+
+
+#' Reorder by style number and size
+ordSize <- function(inv) {
+  size_order <- c("XS","S","M","L","XL","XXL","T2","T4","T6","YS","YM","YL","YXL","NS")
+  inv <- inv %>%
+    group_by(product) %>%
+    mutate(size = factor(size, levels = size_order)) %>%
+    arrange(style_num, size) %>%
+    ungroup()
   return(inv)
 }
