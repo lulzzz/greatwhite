@@ -3,14 +3,26 @@
 
 #' Identify newest file added to a folder
 findNew <- function(path) {
-  return(
-    list.files(path = path, full.names = T) %>%
-      file.info() %>%
-      tibble::rownames_to_column(var = "fname") %>%
-      dplyr::filter(mtime == max(mtime)) %>%
-      dplyr::select(fname) %>%
-      as.character()
-  )
+
+  # Find new file
+  # Keeping separate from files_loaded to avoid
+  # object indexing headaches...
+  new_file <- list.files(path = path, full.names = T) %>%
+    file.info() %>%
+    tibble::rownames_to_column(var = "fname") %>%
+    dplyr::filter(mtime == max(mtime)) %>%
+    dplyr::select(fname) %>%
+    as.character()
+
+  # Global variable to track which files are loaded
+  # for diagnostics and posterity.
+  if(! "files_loaded" %in% ls(envir=.GlobalEnv)) {
+    files_loaded <<- new_file
+  } else {
+    files_loaded <<- c(files_loaded, new_file)
+  }
+
+  return(new_file)
 }
 
 
