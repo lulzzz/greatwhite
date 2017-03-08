@@ -72,7 +72,7 @@ normSales <- function(sales, platform = c("tradegecko","stitch labs"),
              sku = variant.sku,
              item = item.name,
              item_custom = item.label,   # shipping, discounts, etc
-             item_quanity = item.quantity,
+             item_quantity = item.quantity,
              price_regular = item.price,
              discount = item.discount.percentage,
              price_discount = item.discounted.price,
@@ -90,22 +90,6 @@ normSales <- function(sales, platform = c("tradegecko","stitch labs"),
   if(platform == "stitch labs" & type == "itemized orders") {
 
   }
-
-  # COMMENTED OUT SINCE WE'RE NOT DEALING WITH MULTIPLE SALES IMPORTS
-  # AND THERE ARE ALSO A TON OF ISSUES WITH THIS TEST IN GENERAL
-
-  # Crude unit test to make sure we don't accidentally change the
-  # variables that are supposed to come out of this beezy
-
-  # sales_vars_norm = c("order_number","sku","item","item_custom",
-  #                     "price_regular","discount","price_discount",
-  #                     "tax","issue_date","ship_date","currency",
-  #                     "warehouse","customer","ship_zip","ship_country")
-  # if(!identical(sales_vars_norm, names(sales))){
-  #   stop("Personal error message: Column names have changed but this change
-  #        has not been reflected in the rest of the function, or at least
-  #        not in the checker for this error message...")
-  # }
 
   return(sales)
 }

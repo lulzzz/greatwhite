@@ -6,8 +6,8 @@
 #'
 #' Convenience function for creating floor date variables at
 #' weekly, monthly, quarterly, and annual levels
-salesSeries <- function(sales, date_column) {
-  sales <- sales %>%
+dateFloors <- function(df, date_column = "issue_date") {
+  df <- df %>%
     select(date = matches(date_column), everything()) %>%
     mutate(day = floor_date(date, unit = "day"),
            week = floor_date(date, unit = "week"),
@@ -25,8 +25,12 @@ salesSummary <- function(sales,
                          unit = c("day","week","month","quarter","year")) {
   sales_sum <- sales %>%
     group_by_(.dots = unit) %>%
-    summarize(orders = length(unique(order_number))
+    summarize(order_volume = length(unique(order_number)),
+              unit_volume = sum(item_quantity),
+              revenue_potential = sum(item_quantity * price_regular),
+              revenue_realized = sum(item_quantity * price_discount)
               )
+  return(sales_sum)
 }
 
 #' Sales Series
@@ -37,8 +41,13 @@ salesSummary <- function(sales,
 #'
 #' issue_date serves as the "date" of the order
 salesSeries <- function(sales) {
+
   sales_series <- list()
-  summary_vars <- c("")
-  sales_series[day] <- sales
+
+  for(unit in c("day","week","month","quarter","year")) {
+    sales_series[[unit]] <- salesSummary(sales, unit)
+  }
+
+  return(sales_series)
 
 }
