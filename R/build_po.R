@@ -80,6 +80,11 @@ toOrder <- function(inv) {
         # How much will we need to order to meet those levels?
         to_order = target_stock - available_incoming,
 
+        # # For items where the target_stock > 6, only show re-order qty's if we
+        # # need 6 or more items to reach the target_stock
+        # to_order = if_else(target_stock > 6 & to_order >= 6, to_order, 0),
+        # COMMENTED OUT FOR ALTNERATIVE LOGIC
+
         # set negative to_order values to zero since
         # we can't order negative quantities
         to_order = ifelse(to_order < 0, 0, to_order),
@@ -89,7 +94,7 @@ toOrder <- function(inv) {
 
         # Round all to_order values greater than 3 up
         # to the nearest multiple of 6
-        to_order = ifelse(to_order > 0, ceiling(to_order / 6) * 6, to_order)
+        to_order = ifelse(to_order > 6, ceiling(to_order / 6) * 6, to_order)
         )
   )
 }
@@ -99,7 +104,7 @@ poDetail <- function(inv, artwork_i) {
 
   # Figure out which products have this artwork...
   products_to_print <- inv %>%
-    dplyr::filter(artwork_file_1 %in% artwork_i) %>%
+    dplyr::filter(place1_art %in% artwork_i) %>%
     # dplyr::filter(to_order > 0) %>%
     # Commented out because, for now, we want to see all products,
     # even those which do not need to be re-ordered
@@ -111,32 +116,34 @@ poDetail <- function(inv, artwork_i) {
   po_detail <- inv %>%
     dplyr::filter(product %in% products_to_print) %>%
     select(sku, product, gender, size_id, size_ratio, sales_tier_base,
-           blank_id, sales_qty, sales_qty_product,
+           styleName, sales_qty, sales_qty_product,
            on_hand, committed, available_incoming, target_stock, to_order)
 
   # Add summary row to top of po_detail so we know if it meets our printer's minimums
-  row_total <- po_detail %>%
-    filter(to_order > 0) %>% # remove variants that won't be ordered
-    mutate(dummy = 1) %>% group_by(dummy) %>% # dummy variable for grouping
-    summarise(
-      sku = "TOTAL",
-      product = "",
-      gender = "",
-      size_id = "",
-      size_ratio = "",
-      sales_tier_base = "",
-      blank_id = "",
-      sales_qty = "",
-      sales_qty_product = "",
-      on_hand = sum(on_hand),
-      committed = sum(committed),
-      available_incoming = sum(available_incoming),
-      target_stock = "",
-      to_order = sum(to_order)
-    ) %>%
-    select(-dummy)
 
-  po_detail <- rbind(row_total, po_detail)
+  # COMMENTED OUT - REDUNDANT AND CUMBERSOME
+
+  # row_total <- po_detail %>%
+  #   filter(to_order > 0) %>% # remove variants that won't be ordered
+  #   mutate(dummy = 1) %>% group_by(dummy) %>% # dummy variable for grouping
+  #   summarise(
+  #     sku = "TOTAL",
+  #     product = "",
+  #     gender = "",
+  #     size_id = "",
+  #     size_ratio = "",
+  #     sales_tier_base = "",
+  #     blank_id = "",
+  #     sales_qty = "",
+  #     sales_qty_product = "",
+  #     on_hand = sum(on_hand),
+  #     committed = sum(committed),
+  #     available_incoming = sum(available_incoming),
+  #     target_stock = "",
+  #     to_order = sum(to_order)
+  #   ) %>%
+  #   select(-dummy)
+  # po_detail <- rbind(row_total, po_detail)
 
   return(po_detail)
 }
@@ -146,8 +153,8 @@ poDetail <- function(inv, artwork_i) {
 #' Save to new folder: output/DDMMYY_PO/po_detail_graphic_name.csv, ...
 poExport <- function(inv) {
 
-  artwork <- inv %>% select(artwork_file_1) %>%
-    distinct() %>% .$artwork_file_1
+  artwork <- inv %>% select(place1_art) %>%
+    distinct() %>% .$place1_art
 
   dir <- paste0("output/",format(now(), format = c("%m%d%y_%H%M%S")),"_PO")
   dir.create(dir)
@@ -155,7 +162,7 @@ poExport <- function(inv) {
   for(artwork_i in artwork) {
     artwork_name <- strsplit(artwork_i, "\\.")[[1]][1]
     po_detail <- poDetail(inv, artwork = artwork_i)
-    write.csv(po_detail, paste0(dir, "/po_detail_", artwork_name, ".csv"), row.names = F)
+    write.csv(po_detail, paste0(dir, "/", artwork_name, ".csv"), row.names = F)
   }
 
 }

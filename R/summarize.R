@@ -26,9 +26,8 @@ salesSummary <- function(sales,
   sales_sum <- sales %>%
     group_by_(.dots = unit) %>%
     summarize(order_volume = length(unique(order_number)),
-              unit_volume = sum(item_quantity),
-              revenue_potential = sum(item_quantity * price_regular),
-              revenue_realized = sum(item_quantity * price_discount)
+              unit_volume = sum(item_quantity, na.rm = T),
+              revenue = sum(item_quantity * price, na.rm = T)
               )
   return(sales_sum)
 }

@@ -44,62 +44,107 @@ mergeSKU <- function(x, y) {
 }
 
 
-#' Normalize Variant Sales report
+#' Normalize Variant Sales
 #'
-#' This function is designed to normalize a variety of raw sales order exports.
-#' It checks which platform the sales data came from and what type of report
-#' has been exported (i.e. product sales vs itemized orders)
-normSales <- function(sales, platform = c("tradegecko","stitch labs"),
-                      type = c("product","itemized orders")) {
+#' Output: skus and sales quantities
+normVariantSales <- function(sales, platform = c("tradegecko", "stitch labs")){
+  names(sales) <- tolower(names(sales))
+  sales <- sales %>%
+    select(sku = variant.sku,
+           sales_qty = quantity)
+  return(sales)
+}
+
+#' Normalize Itemized Sales datasets
+#'
+#' This function is designed to normalize itemized Sales datasets exported
+#' from TradeGecko or Stitch labs
+normSales <- function(sales, platform = c("tradegecko","stitch labs")) {
 
   names(sales) %<>% tolower # Everything is easier in lowercase
 
-  if(platform == "tradegecko" & type == "product") {
-    sales <- sales %>%
-      select(sku = variant.sku,
-             sales_qty = quantity)
-  }
-
-  if(platform == "stitch labs" & type == "product") {
-    # placeholder cuz I ain't writing this shit
-  }
-
-  if(platform == "tradegecko" & type == "itemized orders") {
+  if(platform == "tradegecko") {
     sales <- sales %>%
       select(order_number = order.number,
              issue_date = issue.date,
-             ship_date = shipment.date,
              sku = variant.sku,
              item = item.name,
-             item_custom = item.label,   # shipping, discounts, etc
              item_quantity = item.quantity,
-             price_regular = item.price,
-             discount = item.discount.percentage,
-             price_discount = item.discounted.price,
-             tax = item.tax.rate,
+             price = item.discounted.price,
              currency = currency,
-             warehouse = warehouse,
              customer = company.name,
              ship_zip = shipping.address.zip.code,
              ship_country = shipping.address.country
              ) %>%
-      mutate(issue_date = parse_date_time(issue_date, "%m/%d/%y"),
-             ship_date = parse_date_time(ship_date, "%m/%d/%y"))
+      mutate(issue_date = parse_date_time(issue_date, "%y-%m-%d"))
   }
 
-  if(platform == "stitch labs" & type == "itemized orders") {
+  if(platform == "stitch labs") {
+
+    sales <- sales %>%
+      select(order_number = ordernumber,
+             issue_date = datecreated,
+             sku = lineitemsku,
+             item = lineitemname,
+             item_quantity = lineitemquantity,
+             price = lineitemprice,
+             currency = currency,
+             customer = contactname,
+             ship_zip = shippingzip,
+             ship_country = shippingcountry
+             ) %>%
+      filter(!is.na(item_quantity))
+
+      # Extend values that are only assigned to first row of each order
+      # to all rows of their respective orders
+      order_first_line <- sales %>%
+        select(order_number, issue_date, currency, customer, ship_zip, ship_country) %>%
+        filter(issue_date != "")
+      sales <- sales %>% select(order_number, sku, item, item_quantity, price)
+      sales <- sales %>%
+        # merge dates to all line items
+        merge(order_first_line, by = "order_number") %>%
+        mutate(issue_date = as.Date(parse_date_time(issue_date,
+                                                   "%y-%m/%d %H:%M:%S")))
 
   }
+
+
+
+  # Final re-ordering and cleanup for itemized data sets
+  sales <- sales %>%
+    # re-order variables from output of whichever of the above if statements
+    # so that this shit is fucking NORMALIZED for real
+    select(order_number, issue_date, sku, item,
+           item_quantity, price, price,
+           currency, customer, ship_zip, ship_country) %>%
+    # filter out empty item values (these are for things like tax, shipping, etc)
+    filter(item != "") %>%
+    # set classes so that this shit is HELLA FUCKING normal
+    mutate(order_number = as.character(order_number),
+           issue_date = as.Date(issue_date),
+           sku = as.character(sku),
+           item = as.character(item),
+           item_quantity = as.numeric(item_quantity),
+           price = as.numeric(price),
+           currency = as.character(currency),
+           customer = as.character(customer),
+           ship_zip = as.character(ship_zip),
+           ship_country = as.character(ship_country)
+    )
 
   return(sales)
 }
+
+
+
 
 #' Sort by style number and size
 #'
 #' Convenience function for sorting dataset on style number and size
 #' Contains size labels unique to Culk Ink
 ordSize <- function(inv) {
-  size_order <- c("XS","S","M","L","XL","XXL","T2","T4","T6","YS","YM","YL","YXL","NS")
+  size_order <- c("AXS","ASM","AMD","ALG","AXL","A2L","T02","T04","T06","YSM","YMD","YLG","Y2L","ONE")
   inv <- inv %>%
     group_by(product) %>%
     mutate(size_id = factor(size_id, levels = size_order)) %>%

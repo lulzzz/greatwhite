@@ -38,8 +38,8 @@ loadRaw <- function(path) {
 #' Load Product Line and Variant Data
 #'
 #' Loads from PRODUCT LINE MASTER (in Culk/Operations as of 02/23/17)
-loadLine <- function(path = "~/Dropbox/Culk/Operations/Product line/PRODUCT LINE MASTER.xlsx",
-                     sheet = "VARIANTS") {
+loadLine <- function(path,
+                     sheet = "variants") {
   return(read_excel(path = path, sheet = sheet))
 }
 
