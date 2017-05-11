@@ -19,25 +19,16 @@ loadStockLevels <- function() {
 
   message('Loaded: ', new_file)
 
-  return(new_file)
+  stock_levels <- read.csv(new_file, stringsAsFactors = F)
+
+  return(stock_levels)
 }
 
-
-#' Load newest file added to a folder
-#' This allows the user to simply drop a file into a folder
-#' and have it loaded without specifying a new path
-loadRaw <- function(path) {
-  return(
-    read.csv(findNew(path = path), stringsAsFactors = F)
-    )
-}
 
 #' Load Product Line and Variant Data
-#'
-#' Loads from PRODUCT LINE MASTER (in Culk/Operations as of 02/23/17)
-loadLine <- function(path,
-                     sheet = "variants") {
-  return(read_excel(path = path, sheet = sheet))
+loadLine <- function() {
+  return(
+    read_excel(path = "Product Line/PRODUCT LINE MASTER.xlsx",
+               sheet = "variants")
+    )
 }
-
-
